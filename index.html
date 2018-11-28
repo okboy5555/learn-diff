@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+
+<body>
+    <!-- 之前 -->
+    <div>           <!-- 层级1 -->
+        <p>            <!-- 层级2 -->
+          <b> aoy </b>   <!-- 层级3 -->   
+          <span>diff</Span>
+        </P> 
+      </div>
+
+      <!-- 之后 -->
+    <div>            <!-- 层级1 -->
+      <p>             <!-- 层级2 -->
+          <b> aoy </b>        <!-- 层级3 -->
+      </p>
+      <span>diff</Span>
+    </div>
+    
+    <script>
+    
+    // 我们可能期望将<span>直接移动到<p>的后边，这是最优的操作。但是实际的diff操作是移除<p>里的<span>在创建一个新的<span>插到<p>的后边。
+    // 因为新加的<span>在层级2，旧的在层级3，属于不同层级的比较。
+
+    // 两个vnode的key和sel相同才去比较它们，比如p和span，div.classA和div.classB都被认为是不同结构而不去比较它们。
+    
+    // {
+    //     el: div //对真实的节点的引用，本例中就是document.querySelector('#id.classA')
+    //     tagName: 'DIV', //节点的标签
+    //     sel: 'div#v.classA' //节点的选择器
+    //     data: null, // 一个存储节点属性的对象，对应节点的el[prop]属性，例如onclick , style
+    //     children: [], //存储子节点的数组，每个子节点也是vnode结构
+    //     text: null, //如果是文本节点，对应文本节点的textContent，否则为null
+    // }
+
+    var oldVnode = patch (oldVnode, vnode)
+
+
+    function patch(oldVnode, vnode) {
+        // 两个节点是否值得比较
+        if (sameVnode(oldVnode, vnode)) {
+            // 值得比较
+            patchVnode(oldVnode, vnode)
+        } else {
+            const oEl = oldVnode.el
+            let parentEle = api.parentNode(oEl) // 取得oldvnode.el的父节点，parentEle是真实dom
+            createEle(vnode) //会为vnode创建它的真实dom，令vnode.el =真实dom
+            if (parentEle !== null) { // parentEle将新的dom插入，移除旧的dom
+                api.insertBefore(parentEle, vnode.el, api.nextSibling(oEl))
+                api.removeChild(parentEle, oldVnode.el)// 当不值得比较时，新节点直接把老节点整个替换了
+                oldVnode = null
+            }
+        }
+        return vnode
+    }
+
+    function sameVnode(oldVnode, vnode) {
+        return vnode.key === oldVnode.key && vnode.sel === oldVnode.sel
+    }
+
+    // 值得比较
+    function patchVnode (oldVnode, vnode) {
+        const el = vnode.el = oldVnode.el // 让vnode.el引用到现在的真实dom，当el修改时，vnode.el会同步变化。
+        let i, oldCh = oldVnode.children, ch = vnode.children
+        if (oldVnode === vnode) return //1、他们的引用一致，可以认为没有变化。
+        if (oldVnode.text !== null && vnode.text !== null && oldVnode.text !== vnode.text) { //2、文本节点的比较，需要修改，
+            api.setTextContent(el, vnode.text)
+        }else {
+            updateEle(el, vnode, oldVnode)
+            if (oldCh && ch && oldCh !== ch) { // 3、 两个节点都有子节点，而且它们不一样
+                updateChildren(el, oldCh, ch)
+            }else if (ch){
+                createEle(vnode) //4、只有新的节点有子节点
+            }else if (oldCh){
+                api.removeChildren(el) //5、新节点没有子节点，老节点有子节点，直接删除老节点
+            }
+        }
+    }
+
+    </script>
+</body>
+
+</html>
